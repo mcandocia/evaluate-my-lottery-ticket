@@ -1,0 +1,267 @@
+<html>
+
+<!--
+	SOURCES HERE
+	https://www.durangobill.com/PowerballOdds.html
+
+	https://www.quora.com/On-average-how-many-tickets-are-sold-for-a-Powerball-drawing
+
+-->
+
+<head>
+<!--d3 and jQuery-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.js"></script>
+<script
+  src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+
+ <script src="lottery.js"></script>
+
+ <!--custom style-->
+<link rel="stylesheet" type="text/css" href="lottery.css"/>
+
+</head>
+
+<body>
+
+	<div id="article_text">
+		<h1> Evaluate My Lottery Ticket!</h1>
+		<p> What is the value of a lottery ticket? Most people will either think of the jackpot, or possibly the expected value, which is the average value you'd get for purchasing every ticket. While the payout of the lottery is usually abysmal compared to its price, there is on factor that puts it in a worse perspective: <b> expected utility</b>.</p>
+
+		<p> Expected utility is the expected change of one's net worth as a factor based on an action they take. For example, splitting you wealth in half has the same (but opposite) utility of doubling your wealth. Likewise, betting half your money on 50/50 odds will only multiply it by 1.5 if you win, but decrease it by a factor of 2 if you lose, making that a bad bet.</p>
+
+		<p> Of course, this is a gross oversimplification, but it works pretty well for explaining general risk-taking behavior. If you apply the same logic to the lottery, you will not only find that the tickets are a rip-off in terms of expected value, but that the prizes that are well over 10 times someone's net worth take up a lot of that expected value, even though the increase in utility (happiness?) from winning the prize is relatively modest compared to the very low chances of winning it.</p>
+
+		<h2> How to use application </h2>
+
+		<p> At the top, there are a few options on how you want to play the lottery, as well as a few other factors that change the overall outcome of the computations, such as your net worth and how many other tickets are sold (to determine chances that jackpot is split). The application is already pre-filled with common values for the Powerball® lottery in the table below.</p>
+
+		<p> You can also add more rows and delete existing rows. When you want to calculate the expected value <i>and</i> expected utility, click the button below, and it will update the table. If not much happens and some inputs become pink, that means there is an issue with at least one of those values.</p>
+
+		<p> The data in the table can be downloaded using the "Download CSV" button and imported into Microsoft Excel or other software.</p>
+		
+
+	</div>
+
+	<div id="lottery_widget_div">
+		<div id="numeric_options_div"></div>
+
+		<div id="probability_list_div">
+			<table id="probability_list_table">
+				<tr id="prob_table_header"> 
+					<th> Label </th>
+					<th> Numerator </th>
+					<th> Denominator </th>
+					<th> Payout </th>
+					<th> Is Jackpot? </th>
+					<th> Value </th>
+					<th> Value % </th>
+					<th> Individual Utility </th>
+					<th> <!--delete button--></th>
+				</tr> 
+			</table>
+		</div>
+
+		
+
+		<div id="results_div">
+			<div id="calculate_button_div">
+			</div>
+			<div id="download_button_div">
+				<button id="download_button">Download CSV</button>
+			</div>
+			<div id="text_results_div">
+			</div>
+		</div>
+		<!--these will allow someone to plot some sample utilities over given ranges of parameters
+			all others being fixed to the above value
+		-->
+		<div id="range_evaluate_div">
+			<h2> Evaluate over a range of values </h2>
+
+			<p> Below you can choose one variable that you would like to repeat trials over a range. All other variables will use the values given in the inputs above. For example, the default selected is "net worth", and you can see how your net worth affects the expected utility of a lottery ticket from a net worth of $10,000 to $1,000,000, with 8 values in between. Press the "Calculate utility for range" button to activate it.</p>
+
+			<p> You can hover over the bars to see a more detailed interpretation of that point. Also, all different trials will be recorded in the background, so you can download the data with "Download All Data". This includes data recorded using the non-range tool above.</p>
+			<div id="range_options_div"></div>
+
+			<div id="range_calculate_button_div"></div>
+
+			<div id="download_all_button_div">
+				<button id="download_all_button">Download All Data</button>
+			</div>
+
+			<div id="plot_div"></div>
+
+			
+
+		</div>
+
+	</div>
+
+
+	<!--scripts to execute-->
+	<script>
+		initialize_metaparameters();
+		initialize_range_metaparameters();
+		initialize_prob_frames();
+		create_text_description();
+		create_range_calculation_button();
+
+		// csv export functionality
+		function download_csv(csv, filename) {
+		    var csvFile;
+		    var downloadLink;
+
+		    // CSV FILE
+		    csvFile = new Blob([csv], {type: "text/csv"});
+
+		    // Download link
+		    downloadLink = document.createElement("a");
+
+		    // File name
+		    downloadLink.download = filename;
+
+		    // We have to create a link to the file
+		    downloadLink.href = window.URL.createObjectURL(csvFile);
+
+		    // Make sure that the link is not displayed
+		    downloadLink.style.display = "none";
+
+		    // Add the link to your DOM
+		    document.body.appendChild(downloadLink);
+
+		    // Lanzamos
+		    downloadLink.click();
+		}
+
+		// going to modify to use jquery
+		// easier to get input text this way
+		function export_table_to_csv(html, filename) {
+		    var csv = [];
+		    var rows = $("#probability_list_table tr");
+		    console.log(rows.length);
+		    
+		    for (var i = 0; i < rows.length; i++) {
+		        var row = [], cols = $(rows[i]).find("td,th");
+		        console.log(cols.length);
+		        
+		        for (var j = 0; j < cols.length; j++) {
+		        	var col = $(cols[j]);
+		        	var col_text = col.text();
+		        	var input_elem = $(col.find('input:text'));
+		        	if (input_elem.length > 0){
+		        		col_text+= input_elem.val();
+		        	}
+		        	var checkbox_input_elem = $(col.find('input:checkbox'));
+		        	if (checkbox_input_elem.length > 0){
+		        		col_text+= checkbox_input_elem.is(':checked');
+		        	}
+
+		        	col_text = col_text.replace(/\s+$/g, '');
+		        	col_text = col_text.replace(/^\s+/g, '');
+
+		            row.push(col_text);
+		        }
+		        
+		        csv.push(row.join(","));        
+		    }
+		    console.log(csv);
+
+		    // Download CSV
+		    download_csv(csv.join("\n"), filename);
+		}
+
+		function export_results_data_to_csv(filename){
+			var csv = [];
+			// master_results_list
+			//header
+			
+			var header = [
+				'trial_id',
+				'expected_utility_change',
+				'expected_value',
+				'individual_expected_value',
+				'sum_expected_value',
+				'net_worth',
+				'ticket_price',
+				'pool_size',
+				'quantity',
+				'total_tickets_sold',
+				'runtime',
+
+				'label',
+				'row_expected_utility',
+				'row_expected_value',
+				'row_value_proportion',
+				'prize_row_id',// value of j below
+			];
+			csv.push(header.join(','));
+
+			for (var i=0; i<master_results_list.length; i++){
+				var mrl = master_results_list[i];
+				var row_first = [
+				    mrl['trial_id'],
+				    mrl['expected_utility_change'],
+				    mrl['expected_value'],
+				    mrl['individual_expected_value'],
+				    mrl['sum_expected_value'],
+				    mrl['metaparameters']['net_worth'],
+				    mrl['metaparameters']['ticket_price'],
+				    mrl['metaparameters']['pool_size'],
+				    mrl['metaparameters']['quantity'],
+				    mrl['metaparameters']['total_tickets_sold'],
+				    mrl['runtime'],
+				];
+
+				for (var j=0; j<mrl['row_expected_utilities'].length; j++){
+					var row_second = [
+						mrl['labels'][j],
+					    mrl['row_expected_utilities'][j],
+					    mrl['row_expected_values'][j],
+					    mrl['row_value_proportions'][j],
+					    j 
+					];
+
+					csv.push(row_first.join(',') + ',' + row_second.join(','));
+				}
+
+			}
+
+			download_csv(csv.join('\n'), filename);
+		}
+
+		document.querySelector('#download_all_button').addEventListener('click', function(){
+			export_results_data_to_csv('lottery_all.csv');
+		});
+
+
+		document.querySelector("#download_button").addEventListener("click", function () {
+		    var html = document.querySelector("#probability_list_table").outerHTML;
+		    export_table_to_csv(html, "lottery_table.csv");
+		});
+
+	</script>
+
+	<h2> Privacy &amp; Disclaimer</h2>
+		<p> I do not record any of the information that is entered on the tables/inputs below. All of the calculations run on your device. Also, it is possible that a large quantity of <code>tickets * pool_size</code> could crash the page for a given probability configuration. A variety of optimizations are made to avoid this, but I currently do not limit the amount of resources used by the client's browser.</p>
+
+		<p> I am hoping that the information in this article does not increase gambling behavior (I hope it does the opposite, actually). If you have a gambling problem, please contact 
+
+		<h2> Source Code </h2>
+		<p><a href="https://github.com/mcandocia/lottery-ticket-evaluation" id="github_lottery_out" target="_blank">https://github.com/mcandocia/lottery-ticket-evaluation</a></p>
+
+		<h2> Browser Console Hacks </h2>
+
+		<p> A few things you can do if you have a console editor to tweak performance. I may make these options later on: </p>
+
+		<ul>
+			<li> You can change the value of <code>significance_z</code> to a value less than 2.5. Decreasing this will reduce the amount of combinations that the utility algorithm goes through, while slightly reducing accuracy. I recommend keeping this value above 1. </li>
+
+
+		</ul>
+
+		<p> That's all for now.</p>
+</body>
+
+</html>
