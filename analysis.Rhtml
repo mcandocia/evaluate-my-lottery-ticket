@@ -25,6 +25,30 @@ better_text_size_tiled <- theme(axis.text=element_text(size=rel(1.15)),
                                 legend.title=element_text(size=rel(1.5)),
                                 legend.text=element_text(size=rel(1.1)))
 
+# allows formatters for numeric values
+as_labeller_numeric <- function (x, default = label_value, multi_line = TRUE) 
+{
+  force(x)
+  fun <- function(labels) {
+    labels <- lapply(labels, as.numeric)
+    default <- ggplot2:::dispatch_args(default, multi_line = multi_line)
+    if (ggplot2:::is_labeller(x)) {
+      x <- ggplot2:::dispatch_args(x, multi_line = multi_line)
+      x(labels)
+    }
+    else if (is.function(x)) {
+      default(lapply(labels, x))
+    }
+    else if (is.character(x)) {
+      default(lapply(labels, function(label) x[label]))
+    }
+    else {
+      default(labels)
+    }
+  }
+  structure(fun, class = "labeller")
+}
+
 
 
 end.rcode-->
@@ -105,6 +129,72 @@ end.rcode-->
 <p> Using expected utility, one can see that the <b>Powerball® tickets have a value from $0.20 to $0.40</b>, depending on one's net worth and how many people join in their pool. <b>Megamillions</b>, on the other hand, is much lower at a <b>range of $0.16 to $0.30</b>, partly due to the fact that a lot of the expected value is loaded into the jackpot, and there aren't as many  valuable prizes besides that.</p>
 
 <p> Most people will probably not be part of a pool greater than 25 people, though. For most people, giving them a quarter is financially better than giving them a $2 lottery ticket. Especially for you.</p>
+
+<h3> Utility of Each Prize </h3>
+
+<p> Each prize of a lottery can be given its own sort of "expected utility". In each case it is simply the probability times the change in utility. Below I've transformed these to dollar values for the prizes for individuals of varying net worth. note how the more valuable prizes tend to add significant value for those with higher net worths, while the most "valuable" prizes for most are, ironically, the $4 prize for matching the "Power Ball" and nothing else. The $50,000 prize for matching 4 white balls plus the "Power Ball" is also somewhat valuable across the board.</p>
+
+<!--begin.rcode individual_utility, fig.width=10, fig.height=12, message=FALSE, echo=FALSE, warning=FALSE
+ggplot(lottery %>% filter(pool_size==1 & total_tickets_sold==50000000 & ticket_price==2)) + 
+  geom_bar(aes(x=label, y=net_worth * (10^(row_expected_utility)-1), fill=label), stat='identity') + 
+  facet_wrap(~net_worth, labeller=as_labeller_numeric(dollar), scales='free') + 
+  coord_flip() + 
+  scale_y_continuous('Expected utility of payout option, transformed to USD', label=dollar) + 
+  xlab('Match Combination') + 
+  ggtitle('Individual utility of each prize of Powerball® ticket, grouped by net worth of player',
+          subtitle='Expected utility is E(log(net_worth)), rather than E(net_worth), which is a better metric for usefulness of outcomes') +
+  better_text_size_tiled + theme(
+    axis.text.y=element_text(size=rel(1.15)),
+    plot.title=element_text(size=rel(1.5)),
+    plot.subtitle=element_text(size=rel(1)),
+    legend.title=element_text(size=rel(1.5)),
+    legend.text=element_text(size=rel(1.1)),
+    axis.text.x = element_text(size=rel(0.6))
+  ) + 
+  scale_fill_discrete('Match Combo')
+end.rcode-->
+
+<br/>
+
+<style>
+.t-bold  th {
+    font-weight: bold;
+    width: 115px;
+    height: 24px;
+    background-color: #4499EE;
+    color: #FFF;
+}
+
+#payout_table_div > td {
+    font-weight: bold;
+    width: auto;
+    background-color: #4499EE;
+    color: #FFF;
+}
+
+.t-bold tr:nth-child(2n+2) {
+    background: #CCC;
+}
+</style>
+
+<p> For reference, here is the table of probabilities of each payout. The number next to the <b>W</b> indicates how many white balls need to match, and the +PB means that the powerball must also match. Source: <a href="https://www.durangobill.com/PowerballOdds.html" target="_blank" id="durangobill_powerballodds_out">https://www.durangobill.com/PowerballOdds.html</a>.</p>
+
+<div id="payout_table_div">
+<table id="payout_table" class="t-bold">
+<tr><th> Combination</th><th>Payout</th><th>Probability</th></tr>
+<tr><td>0W+PB</td><td>$4</td><td>1/38.32</td></tr>
+<tr><td>1W+PB</td><td>$4</td><td>1/91.98</td></tr>
+<tr><td>2W+PB</td><td>$7</td><td>1/701.33</td></tr>
+<tr><td>3W</td><td>$7</td><td>1/579.76</td></tr>
+<tr><td>3W+PB</td><td>$100</td><td>1/14,494.11</td></tr>
+<tr><td>4W</td><td>$100</td><td>1/36,525.17</td></tr>
+<tr><td>4W+PB</td><td>$50,000</td><td>1/913,129.18</td></tr>
+<tr><td>5W</td><td>$1,000,000</td><td>1/11,688,053.522</td></tr>
+<tr><td>5W+PB</td><td>$50,000,000 (jackpot)</td><td>1/292,201,338</td></tr>
+</table>
+</div>
+
+
 
 <h2> Other Considerations </h2>
 
