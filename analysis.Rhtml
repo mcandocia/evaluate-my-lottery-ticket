@@ -1,0 +1,120 @@
+
+
+<!--begin.rcode setup, echo=FALSE, message=FALSE, warning=FALSE
+
+library(plyr);library(dplyr)
+
+library(ggplot2)
+library(scales)
+library(reshape2)
+
+setwd('D:/workspace/lottery')
+load('lottery_breakdown.RData')
+
+better_text_size_manylabs <- theme(axis.text=element_text(size=rel(1.3)),
+                                   axis.title=element_text(size=rel(1.5)),
+                                   plot.title=element_text(size=rel(1.5)),
+                                   plot.subtitle=element_text(size=rel(1.3)),
+                                   legend.title=element_text(size=rel(1.5)),
+                                   legend.text=element_text(size=rel(1.1)))
+
+better_text_size_tiled <- theme(axis.text=element_text(size=rel(1.15)),
+                                axis.title=element_text(size=rel(1.5)),
+                                plot.title=element_text(size=rel(1.5)),
+                                plot.subtitle=element_text(size=rel(1.3)),
+                                legend.title=element_text(size=rel(1.5)),
+                                legend.text=element_text(size=rel(1.1)))
+
+
+
+end.rcode-->
+
+<p> Imagine that you are given the option of either a 100% chance at receiving $100,000 OR a 15% chance of $1,000,000. Which would you choose?</p>
+
+<p> Mathematically speaking, the <b>expected value</b> of the two scenarios above are $100,000 <code>(100% * $100,000)</code> and $150,000 <code>(15% * $1,000,000)</code>, respectively, where the expected value is the sum of each possible value times its probability. At first glance, it would seem that the second option is inequivocably better.</p>
+
+<p> Despite the <i>expected value</i> being higher, the answer to the above will vary from person-to-person. Generally people with less money would (or at least should) go with the $100,000 option, as that is easily life-changing money without risk, while people worth millions of dollars can probably afford the extra risk for the extra reward, since missing out on $100,000 may not be nearly as significant. </p>
+
+<p> One alternate metric to use instead of <i>expected value</i> is <b>expected utility</b>. In economics, utility is defined as a function over overall wealth, and the <a href="https://en.wikipedia.org/wiki/Logarithm" target="_blank" id="wiki_logarithm_out">logarithm</a> function is the most common one.</p>
+
+<p> Using a base-10 logarithm, one can calculate the utilities of various amounts of wealth: </p>
+
+<!--begin.rcode log_plot_example2, fig.width=8, fig.height=7, warning=FALSE, echo=FALSE, message=FALSE
+x = seq(1000,500000,50)
+df = data.frame(x=x)
+ggplot(df) + geom_line(aes(x=x,y=log(x)/log(10))) + 
+  scale_x_continuous(label=dollar) + xlab('Net Worth') +  
+  ylab(bquote('"Utility" of Net Worth = '*log[10]*'(x)')) +
+  ggtitle('Utility of net worth using logarithm function') + 
+  better_text_size_manylabs
+end.rcode-->
+
+<p> Under this metric, doubling your wealth and splitting your wealth in half have the same impact, but in opposite directions. Additionally, <i>fair</i> bets always have <i style="color:firebrick;">negative expected utility</i>, although less noticeably so when they aren't as big. As a simple example, imagine having $200 and betting $100 on a coin flip. If you lose, you divide your money by 2, but if you win, you only multiply it by 1.5. The changes in utility is the logarithm of both those numbers, -0.301 and 0.176, respectively, with the negative sign representing a decrease in money/utility.</p>
+
+<p> One can think of <i>expected utility</i> as "expected happiness with money". This is more useful than <i>expected value</i> when dealing with dollar amounts a significant fraction of or higher than one's net worth.</p>
+
+<h2> Lottery and Expected Utility </h2>
+
+<p> See my <a href="https://maxcandocia.com/app/evaluate-my-lottery-ticket/" id="evaluate_lottery_ticket_out" target="_blank"> Evaluate My Lottery Ticket! app</a> used to perform calculations.</p>
+
+<p> How much is a lottery ticket actually worth to an individual? The <i>expected values</i> of each $2 Powerball® ticket and Mega Millions ticket are about $0.48 and $0.28, respectively, when their jackpots are each $50,000,000 (assume that's the lump sum value) and 300,000,000 individuals buy tickets. With larger jackpots, the expected value goes up, but a proportionate increase in individuals playing will bring that expected value back down due to the chances of multiple people splitting the jackpot.</p>
+
+<p> That being said, for most individuals, while the jackpot may be a significant source of a ticket's <i>expected value</i>, its expected utility is minimal. Imagine that the jackpot is <code>x</code> times someone's net worth, and its probability is <code> 1/x * 1/100,000</code>. The contribution of the jackpot to expected utility is <code>1/(100,000 * x) * log(net_worth * x)</code>, or  <code>1/(100,000 * x) * (log(net_worth) + log(x))</code>. This is what that looks like for someone with a net worth of $50,000, plotted: </p>
+
+<!--begin.rcode log_plot_example, fig.width=8, fig.height=7, warning=FALSE, echo=FALSE, message=FALSE
+z = seq(1,10000, 9)
+dfz = data.frame(z=z)
+ggplot(dfz) + geom_line(aes(x=z,y=1/(100000*z)*(log(50000) + log(z)))) + 
+  scale_x_continuous(label=comma) + xlab('Ratio of jackpot to net worth') +  
+  ylab(expression('Expected Utility of potential payout')) +
+  ggtitle('Expected utility of jackpot payout vs. ratio of jackpot to net worth',
+          subtitle=bquote(atop(' Probability = '*over(1,'100,000')~'*'~ over(1,ratio) *'; '*'Expected Value = '*over('net worth','100,000'), ' Expected Utility='*over(1,'ratio*100,000')*'*'*log[10]*'(net_worth*ratio)')))+ 
+  better_text_size_manylabs
+end.rcode-->
+
+<p> Because the logarithm function increases very slowly, the utility of the ticket effectively decreases as factor of the payout. e.g., if the payout is 10 times higher, then the expected utility is about 10 times less.</p>
+
+<h3> Lottery Pools </h3>
+
+<p> Some people join with friends or coworkers to pool a bunch of tickets they bought together to split any prizes won by those tickets. While this doesn't affect the <i>expected value</i> of a ticket, it actually <i style="color:forestgreen;">increases expected utility</i>, because the probability of winning is more important than the decrease in the prize's value. Below, using expected utility, I have "expected utility break-even" values plotted for both Powerball® and Mega Millions lotteries. <b> These are prices that an individual should value the tickets at given their net worth and the size of any pool they are part of</b>.</p>
+
+
+<!--begin.rcode pb_breakeven, fig.width=10, fig.height=10, echo=FALSE, warning=FALSE, message=FALSE
+ggplot(lottery_breakeven) + geom_line(aes(x=net_worth, y=min_price, color=pool_size, group=pool_size), lwd=2) + 
+  scale_x_log10('Net Worth (USD)', label=dollar, breaks=c(10000,25000,50000, 100000,500000,1000000)) + 
+  scale_y_continuous('Ticket Price for Break-even Expected Utility', label=dollar) + 
+  ggtitle('Powerball® Ticket Value versus Purchaser Net Worth and Size of Pool',
+          subtitle='Expected utility is E(log(net_worth)), rather than E(net_worth), \nwhich is a better metric for usefulness of outcomes\nPool size is the total number of people (including purchaser) who split all winnings they earn') +
+  scale_color_discrete('Pool Size')+ 
+  better_text_size_manylabs
+end.rcode-->
+
+<br/>
+
+
+<!--begin.rcode mm_breakeven, fig.width=10, fig.height=10, echo=FALSE, warning=FALSE, message=FALSE
+ggplot(lottery2_breakeven) + geom_line(aes(x=net_worth, y=min_price, color=pool_size, group=pool_size), lwd=2) + 
+  scale_x_log10('Net Worth (USD)', label=dollar, breaks=c(10000,25000,50000, 100000,500000,1000000)) + 
+  scale_y_continuous('Ticket Price for Break-even Expected Utility', label=dollar) + 
+  ggtitle('Megamillions Ticket Value versus Purchaser Net Worth and Size of Pool',
+          subtitle='Expected utility is E(log(net_worth)), rather than E(net_worth), \nwhich is a better metric for usefulness of outcomes\nPool size is the total number of people (including purchaser) who split all winnings they earn') +
+  scale_color_discrete('Pool Size')+ 
+  better_text_size_manylabs
+end.rcode-->
+
+<p> Using expected utility, one can see that the <b>Powerball® tickets have a value from $0.20 to $0.40</b>, depending on one's net worth and how many people join in their pool. <b>Megamillions</b>, on the other hand, is much lower at a <b>range of $0.16 to $0.30</b>, partly due to the fact that a lot of the expected value is loaded into the jackpot, and there aren't as many  valuable prizes besides that.</p>
+
+<p> Most people will probably not be part of a pool greater than 25 people, though. For most people, giving them a quarter is financially better than giving them a $2 lottery ticket. Especially for you.</p>
+
+<h2> Other Considerations </h2>
+
+<p> Expected utility is a gross over-simplification of how people use and view money, but it is fairly useful for generalizing. What is not taken into account by the model is the often-claimed benefit of dreaming about what one would do with the winning money, or the rush one feels from playing. As far as gambling goes, though, lottery tickets are the worst in terms of payout, yet the most common. </p>
+
+<p> Also, taxes. Again, these don't affect expected utility too much, as the heavily-taxed jackpot hardly affects it, but it can affect intermediate prizes, like $10,000-$50,000 ones, which will have significant taxes on them. This further reduces the value of a lottery ticket, especially since you can't just write off worthless tickets from your taxable income.</p>
+
+<h2> Code </h2>
+
+<p> The repository for the code for this analysis is at <a href="https://github.com/mcandocia/evaluate-my-lottery-ticket" id="github_lottery_out" target="_blank">https://github.com/mcandocia/lottery-ticket-evaluation</a>. </p>
+
+<p> Additionally, the data itself was generated using the <a href="https://maxcandocia.com/app/evaluate-my-lottery-ticket/" id="evaluate_lottery_ticket_out2" target="_blank"> Evaluate My Lottery Ticket! app</a>, with a small amount of code copy/pasted into the console to run with less user input.</p>
+
